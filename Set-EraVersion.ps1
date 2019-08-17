@@ -41,6 +41,7 @@ $build = [convert]::ToInt32($hashUpperWord, 16)
 $revision = [convert]::ToInt32($hashLowerWord, 16)
 $semVer = "{0}+{1}.{2}" -f $semVerBase, $commitsOnCurrentBranch, $currentCommitHashShort
 
+# FIXME: AssemblyVersion and FileVersion is not ascending, but to the same degree unique as the hash!
 $assemblyVersion = "{0}.{1}.{2}.{3}" -f $major, $minor, $build, $revision
 # FIXME: add 16bit overflow check for FileVersion (warning when -1y, error when -5d)
 $fileVersion = $assemblyVersion
