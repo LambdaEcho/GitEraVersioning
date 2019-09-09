@@ -30,7 +30,7 @@ $semVerBase = "{0:dd}.{1:hhmm}.0" -f $timeSpan, $timeSpan
 $commitsOnCurrentBranch = ((git rev-list --count HEAD) | Out-String).Trim()
 Write-Output $commitsOnCurrentBranch
 
-# master: F, release: A, develop: 4, topic: 0
+# master: F (aka. rtm), release: A (aka. rc), develop: 4 (aka. ci), topic: 0 (aka. canary)
 $branchNibble = "4"
 $hashUpperWord = $branchNibble + $currentCommitHashShort.Substring(0,3)
 $hashLowerWord = $currentCommitHashShort.Substring(3,4)
@@ -39,11 +39,15 @@ $major = $semVerBase.Split(".")[0]
 $minor = $semVerBase.Split(".")[1]
 $build = [convert]::ToInt32($hashUpperWord, 16)
 $revision = [convert]::ToInt32($hashLowerWord, 16)
-$semVer = "{0}+{1}.{2}" -f $semVerBase, $commitsOnCurrentBranch, $currentCommitHashShort
+$semVer = "{0}-canary+{1}.{2}" -f $semVerBase, $commitsOnCurrentBranch, $currentCommitHashShort
 
-# FIXME: AssemblyVersion and FileVersion is not ascending, but to the same degree unique as the hash!
+# NOTE: AssemblyVersion and FileVersion are not fully ascending, but to the same degree unique as the hash!
+#       While the values for Major and Minor are ascending, the values for Build and Revision are composed
+#       of a hash which might produce random results.
+#       Nevertheless, since it is pretty unlikely to have multiple builds within the same minute,
+#       we settle for it!
 $assemblyVersion = "{0}.{1}.{2}.{3}" -f $major, $minor, $build, $revision
-# FIXME: add 16bit overflow check for FileVersion (warning when -1y, error when -5d)
+# FIXME: add 16bit overflow check for FileVersion (warning when -1y, error when -30d)
 $fileVersion = $assemblyVersion
 
 Write-Output "SemVerBase: $($SemVerBase)"
