@@ -12,6 +12,7 @@
 #
 
 # era of beginning can be static date ("2019-08-16T10:15:00") or date of inital commit
+# -> might be configurable
 $eraBeginning = Get-Date "2018-10-01"
 
 # requires git 1.7.4.2+
