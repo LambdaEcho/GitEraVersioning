@@ -65,19 +65,15 @@ function Get-CurrentCommit() {
     $shortHash = $hash.Substring(0,7)
     $date = (git show -s --format=%cI $shortHash) | Get-Date
 
-Write-Host $date.GetType()
-
     $commit = [Commit]@{
         CommitHash = $hash
         CommitDate = $date
     }
 
-Write-Host $commit.CommitDate.GetType()
-
     return $commit
 }
 
-function Get-NextVersion ([DateTime]$EraBeginningDate, [Commit]$CurrentCommit, [string]$BranchType)
+function Get-NextEraVersion ([DateTime]$EraBeginningDate, [Commit]$CurrentCommit, [string]$BranchType)
 {
     $timeSpan = New-TimeSpan -Start $EraBeginningDate -End $CurrentCommit.CommitDate
     $semVerBase = "{0:dd}.{1:hhmm}.0" -f $timeSpan, $timeSpan

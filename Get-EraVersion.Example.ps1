@@ -9,8 +9,7 @@ $file = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Example\.', 
 $initialCommit = Get-InitialCommit
 $currentCommit = Get-CurrentCommit
 
-Write-Host $initialCommit.CommitDate.GetType()
-$version = Get-NextVersion -EraBeginningDate $initialCommit.CommitDate -CurrentCommit $currentCommit -BranchType "canary"
+$version = Get-NextEraVersion -EraBeginningDate $initialCommit.CommitDate -CurrentCommit $currentCommit -BranchType "canary"
 
 Write-Output "AssemblyVersion: $($version.AssemblyVersion)"
 Write-Output "FileVersion: $($version.FileVersion)"
