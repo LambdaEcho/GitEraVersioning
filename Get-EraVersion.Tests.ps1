@@ -17,7 +17,7 @@ $PesterPreference.Debug.WriteDebugMessagesFrom = "Mock"
 $PesterPreference.Should.ErrorAction = "Continue"
 
 # Tests
-Describe -Tags "Unit" -Name "NameOfTestGroup" {
+Describe -Tags "Unit" -Name "Get-NextEraVersion" {
 
 }
 
