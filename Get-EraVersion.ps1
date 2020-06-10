@@ -73,8 +73,16 @@ function Get-CurrentCommit() {
     return $commit
 }
 
-function Get-NextEraVersion ([DateTime]$EraBeginningDate, [Commit]$CurrentCommit, [string]$BranchType)
+#function Get-NextEraVersion ([DateTime]$EraBeginningDate, [Commit]$CurrentCommit, [string]$BranchType)
+function Get-NextEraVersion
 {
+    [CmdletBinding()]
+    Param(
+        [DateTime]$EraBeginningDate,
+        [Commit]$CurrentCommit,
+        [string]$BranchType
+    )
+
     $timeSpan = New-TimeSpan -Start $EraBeginningDate -End $CurrentCommit.CommitDate
     $semVerBase = "{0:dd}.{1:hhmm}.0" -f $timeSpan, $timeSpan
 
@@ -95,9 +103,14 @@ function Get-NextEraVersion ([DateTime]$EraBeginningDate, [Commit]$CurrentCommit
     #       Nevertheless, since it is pretty unlikely to have multiple builds within the same minute,
     #       we settle for it!
     $assemblyVersion = "{0}.{1}.{2}.{3}" -f $major, $minor, $build, $revision
-
-    # FIXME: add 16bit overflow check for FileVersion (warning when -1y, error when -30d)
     $fileVersion = $assemblyVersion
+
+    # The FileVersion consists of four 16bit values on Win32.
+    # Hence, we need an overflow check for the Major value that represents the elapsed days.
+    $elapsedDays = $timeSpan.Days
+    $elapsedDaysMessage = "The Major value has almost reached its maximum. A value greater than 65535 can cause problems on Win32 systems! Major value is '$elapsedDays'."
+    if ($elapsedDays -gt 65500) { Write-Error $elapsedDaysMessage } #-ErrorAction Inquire }
+    elseif ($elapsedDays -gt 65170) { Write-Warning $elapsedDaysMessage }
 
     $version = [Version]@{
         AssemblyVersion = $assemblyVersion
