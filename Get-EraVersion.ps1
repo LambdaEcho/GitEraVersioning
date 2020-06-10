@@ -107,3 +107,5 @@ function Get-NextEraVersion ([DateTime]$EraBeginningDate, [Commit]$CurrentCommit
 
     return $version
 }
+
+# FIXME: Add function to write version.xml
