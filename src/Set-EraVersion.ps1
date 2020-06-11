@@ -1,3 +1,4 @@
+#Requires -Version 5.0
 #
 # git era versioning
 #
@@ -11,48 +12,131 @@
 #   and <build> ::= <commitsSinceVersionSource>.<currentCommitHashShort>
 #
 
-# era of beginning can be static date ("2019-08-16T10:15:00") or date of inital commit
-# -> might be configurable
-$eraBeginning = Get-Date "2018-10-01"
 
-# requires git 1.7.4.2+
-$initialCommitHash = (git rev-list --max-parents=0 HEAD) | Out-String
-$initialCommitHashShort = $initialCommitHash.Substring(0,7)
-$initialCommitDate = (git show -s --format=%cI $initialCommitHashShort) | Get-Date
 
-$currentCommitHash = (git rev-parse HEAD) | Out-String
-$currentCommitHashShort = $currentCommitHash.Substring(0,7)
-$currentCommitDate = (git show -s --format=%cI $currentCommitHashShort) | Get-Date
+#
+# CONFIGURATION
+#
+$cfgBranchTypeProperties = @{}
+$cfgBranchTypeProperties["canary"] = @{ Label = "canary"; Nibble = "0" } # Used for active topic branches (aka. feature branches), i.e. for canary builds.
+$cfgBranchTypeProperties["develop"] = @{ Label = "ci"; Nibble = "4" } # Used for main develop branch, i.e. for CI builds.
+$cfgBranchTypeProperties["release"] = @{ Label = "rc"; Nibble = "A" } # Used for active release branches, i.e. for RC builds.
+$cfgBranchTypeProperties["master"] = @{ Label = ""; Nibble = "F" } # Used for master branch, i.e. RTM builds.
 
-$timeSpan = New-TimeSpan -Start $eraBeginning -End $currentCommitDate
 
-$semVerBase = "{0:dd}.{1:hhmm}.0" -f $timeSpan, $timeSpan
 
-$commitsOnCurrentBranch = ((git rev-list --count HEAD) | Out-String).Trim()
-Write-Output $commitsOnCurrentBranch
+#
+# TYPES
+#
+class Commit
+{
+    # Optionally, add attributes to prevent invalid values
+    [ValidateNotNullOrEmpty()][string]$CommitHash
+    [ValidateNotNullOrEmpty()][DateTime]$CommitDate
+}
 
-# master: F (aka. rtm), release: A (aka. rc), develop: 4 (aka. ci), topic: 0 (aka. canary)
-$branchNibble = "4"
-$hashUpperWord = $branchNibble + $currentCommitHashShort.Substring(0,3)
-$hashLowerWord = $currentCommitHashShort.Substring(3,4)
+class Version
+{
+    [ValidateNotNullOrEmpty()][string]$AssemblyVersion
+    [ValidateNotNullOrEmpty()][string]$FileVersion
+    [ValidateNotNullOrEmpty()][string]$SemanticVersion
+}
 
-$major = $semVerBase.Split(".")[0]
-$minor = $semVerBase.Split(".")[1]
-$build = [convert]::ToInt32($hashUpperWord, 16)
-$revision = [convert]::ToInt32($hashLowerWord, 16)
-$semVer = "{0}-canary+{1}.{2}" -f $semVerBase, $commitsOnCurrentBranch, $currentCommitHashShort
 
-# NOTE: AssemblyVersion and FileVersion are not fully ascending, but to the same degree unique as the hash!
-#       While the values for Major and Minor are ascending, the values for Build and Revision are composed
-#       of a hash which might produce random results.
-#       Nevertheless, since it is pretty unlikely to have multiple builds within the same minute,
-#       we settle for it!
-$assemblyVersion = "{0}.{1}.{2}.{3}" -f $major, $minor, $build, $revision
-# FIXME: add 16bit overflow check for FileVersion (warning when -1y, error when -30d)
-$fileVersion = $assemblyVersion
 
-Write-Output "SemVerBase: $($SemVerBase)"
-Write-Output "SemVer: $($SemVer)"
-Write-Output "AssemblyVersion: $($assemblyVersion)"
-Write-Output "FileVersion: $($FileVersion)"
+#
+# LOGIC
+#
+function Get-InitialCommit() {
+    $hash = (git rev-list --max-parents=0 HEAD) | Out-String
+    $shortHash = $hash.Substring(0,7)
+    $date = (git show -s --format=%cI $shortHash) | Get-Date
+    
+    $commit = [Commit]@{
+        CommitHash = $hash
+        CommitDate = $date
+    }
 
+    return $commit
+}
+
+function Get-CurrentCommit() {
+    $hash = (git rev-parse HEAD) | Out-String
+    $shortHash = $hash.Substring(0,7)
+    $date = (git show -s --format=%cI $shortHash) | Get-Date
+
+    $commit = [Commit]@{
+        CommitHash = $hash
+        CommitDate = $date
+    }
+
+    return $commit
+}
+
+function Get-NextEraVersion
+{
+    [CmdletBinding()]
+    Param(
+        [DateTime]$EraBeginningDate,
+        [Commit]$CurrentCommit,
+        [string]$BranchType
+    )
+
+    $timeSpan = New-TimeSpan -Start $EraBeginningDate -End $CurrentCommit.CommitDate
+    $semVerBase = "{0:dd}.{1:hhmm}.0" -f $timeSpan, $timeSpan
+
+    $branchTypeProperties = $cfgBranchTypeProperties[$BranchType.ToLower()]
+    $branchNibble = $branchTypeProperties.Nibble
+    $hashUpperWord = $branchNibble + $CurrentCommit.CommitHash.Substring(0,3)
+    $hashLowerWord = $CurrentCommit.CommitHash.Substring(3,4)
+
+    $major = $semVerBase.Split(".")[0]
+    $minor = $semVerBase.Split(".")[1]
+    $build = [convert]::ToInt32($hashUpperWord, 16)
+    $revision = [convert]::ToInt32($hashLowerWord, 16)
+    $semVer = "{0}-{1}+{2}" -f $semVerBase, $branchTypeProperties.Label, $CurrentCommit.CommitHash.Substring(0,7)
+
+    # NOTE: AssemblyVersion and FileVersion are not fully ascending, but to the same degree unique as the hash!
+    #       While the values for Major and Minor are ascending, the values for Build and Revision are composed
+    #       of a hash which might produce random results.
+    #       Nevertheless, since it is pretty unlikely to have multiple builds within the same minute,
+    #       we settle for it!
+    $assemblyVersion = "{0}.{1}.{2}.{3}" -f $major, $minor, $build, $revision
+    $fileVersion = $assemblyVersion
+
+    # The FileVersion consists of four 16bit values on Win32.
+    # Hence, we need an overflow check for the Major value that represents the elapsed days.
+    $elapsedDays = $timeSpan.Days
+    $elapsedDaysMessage = "The Major value has almost reached its maximum. A value greater than 65535 can cause problems on Win32 systems! Major value is '$elapsedDays'."
+    if ($elapsedDays -gt 65500) { Write-Error $elapsedDaysMessage } #-ErrorAction Inquire }
+    elseif ($elapsedDays -gt 65170) { Write-Warning $elapsedDaysMessage }
+
+    $version = [Version]@{
+        AssemblyVersion = $assemblyVersion
+        FileVersion = $fileVersion
+        SemanticVersion = $semVer
+    }
+
+    return $version
+}
+
+function Set-VersionXmlFile
+{
+    [CmdletBinding()]
+    Param(
+        [string]$AbsoluteFilePath,
+        [Version]$Version
+    )
+
+    [xml]$xml = Get-Content -Path $AbsoluteFilePath
+    (Select-Xml -Xml $xml -XPath "//PropertyGroup/AssemblyVersion").Node.InnerText = $Version.AssemblyVersion
+    (Select-Xml -Xml $xml -XPath "//PropertyGroup/FileVersion").Node.InnerText = $Version.FileVersion
+    (Select-Xml -Xml $xml -XPath "//PropertyGroup/InformationalVersion").Node.InnerText = $Version.SemanticVersion
+    $xml.Save($AbsoluteFilePath)
+
+    # Sanity check
+    # After file processing, we expect a remaining variable for PackageVersion and Version only!
+    if (((Select-String -Path $AbsoluteFilePath -Pattern "\$\(InformationalVersion\)") | Measure-Object).Count -ne 2) {
+        throw [System.InvalidOperationException] "Error while processing $($AbsoluteFilePath)!"
+    }
+}
