@@ -17,11 +17,11 @@
 #
 # CONFIGURATION
 #
-$cfgBranchTypeProperties = @{}
-$cfgBranchTypeProperties["canary"] = @{ Label = "canary"; Nibble = "0" } # Used for active topic branches (aka. feature branches), i.e. for canary builds.
-$cfgBranchTypeProperties["develop"] = @{ Label = "ci"; Nibble = "4" } # Used for main develop branch, i.e. for CI builds.
-$cfgBranchTypeProperties["release"] = @{ Label = "rc"; Nibble = "A" } # Used for active release branches, i.e. for RC builds.
-$cfgBranchTypeProperties["master"] = @{ Label = ""; Nibble = "F" } # Used for master branch, i.e. RTM builds.
+$cfgBranchNameProperties = @{}
+$cfgBranchNameProperties["topic"] = @{ Label = "canary"; Nibble = "0" } # Used for active topic branches (aka. feature branches), i.e. for canary builds.
+$cfgBranchNameProperties["develop"] = @{ Label = "ci"; Nibble = "4" } # Used for main develop branch, i.e. for CI builds.
+$cfgBranchNameProperties["release"] = @{ Label = "rc"; Nibble = "A" } # Used for active release branches, i.e. for RC builds.
+$cfgBranchNameProperties["master"] = @{ Label = ""; Nibble = "F" } # Used for master branch, i.e. RTM builds.
 
 
 
@@ -79,22 +79,24 @@ function Get-NextEraVersion
     Param(
         [DateTime]$EraBeginningDate,
         [Commit]$CurrentCommit,
-        [string]$BranchType
+        [string]$BranchName
     )
 
-    $timeSpan = New-TimeSpan -Start $EraBeginningDate -End $CurrentCommit.CommitDate
-    $semVerBase = "{0:dd}.{1:hhmm}.0" -f $timeSpan, $timeSpan
+    $length = $(If ($BranchName.IndexOf('/') -gt 0) { $BranchName.IndexOf('/') } Else { $BranchName.Length })
+    $branchType = $BranchName.Substring(0, $length)
+    $branchNameProperties = $cfgBranchNameProperties[$branchType.ToLower()]
 
-    $branchTypeProperties = $cfgBranchTypeProperties[$BranchType.ToLower()]
-    $branchNibble = $branchTypeProperties.Nibble
+    $branchNibble = $branchNameProperties.Nibble
     $hashUpperWord = $branchNibble + $CurrentCommit.CommitHash.Substring(0,3)
     $hashLowerWord = $CurrentCommit.CommitHash.Substring(3,4)
 
+    $timeSpan = New-TimeSpan -Start $EraBeginningDate -End $CurrentCommit.CommitDate
+    $semVerBase = "{0:dd}.{1:hhmm}.0" -f $timeSpan, $timeSpan
     $major = $semVerBase.Split(".")[0]
     $minor = $semVerBase.Split(".")[1]
     $build = [convert]::ToInt32($hashUpperWord, 16)
     $revision = [convert]::ToInt32($hashLowerWord, 16)
-    $semVer = "{0}-{1}+{2}" -f $semVerBase, $branchTypeProperties.Label, $CurrentCommit.CommitHash.Substring(0,7)
+    $semVer = "{0}-{1}+{2}" -f $semVerBase, $branchNameProperties.Label, $CurrentCommit.CommitHash.Substring(0,7)
 
     # NOTE: AssemblyVersion and FileVersion are not fully ascending, but to the same degree unique as the hash!
     #       While the values for Major and Minor are ascending, the values for Build and Revision are composed

@@ -11,22 +11,26 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
 . "$here\$sut"
 
 # Configure Pester
-$PesterPreference = [PesterConfiguration]::Default
-$PesterPreference.Debug.WriteDebugMessages = $true
-$PesterPreference.Debug.WriteDebugMessagesFrom = "Mock"
-$PesterPreference.Should.ErrorAction = "Continue"
+#$PesterPreference = [PesterConfiguration]::Default
+#$PesterPreference.Debug.WriteDebugMessages = $true
+#$PesterPreference.Debug.WriteDebugMessagesFrom = "Mock"
+#$PesterPreference.Should.ErrorAction = "Continue"
 
 # Tests
 Describe -Tags "Unit" -Name "Get-NextEraVersion" {
-    It "Correctly constructs AssemblyVersion, FileVersion and SemanticVersion based on given <branchType>" -TestCases @(
-        @{ branchType = 'canary'; expectedBranchLabel = 'canary'; expectedBuildNumer = "3431" }
-        @{ branchType = 'develop'; expectedBranchLabel = 'ci'; expectedBuildNumer = "19815" }
-        @{ branchType = 'release'; expectedBranchLabel = 'rc'; expectedBuildNumer = "44391" }
-        @{ branchType = 'master'; expectedBranchLabel = ''; expectedBuildNumer = "64871" }
+    It "Correctly constructs AssemblyVersion, FileVersion and SemanticVersion based on given <branchName>" -TestCases @(
+        @{ branchName = 'topic'; expectedBranchLabel = 'canary'; expectedBuildNumer = "3431" }
+        @{ branchName = 'topic/story42'; expectedBranchLabel = 'canary'; expectedBuildNumer = "3431" }
+        @{ branchName = 'topic/story42/task7'; expectedBranchLabel = 'canary'; expectedBuildNumer = "3431" }
+        @{ branchName = 'develop'; expectedBranchLabel = 'ci'; expectedBuildNumer = "19815" }
+        @{ branchName = 'release'; expectedBranchLabel = 'rc'; expectedBuildNumer = "44391" }
+        @{ branchName = 'release/3.14'; expectedBranchLabel = 'rc'; expectedBuildNumer = "44391" }
+        @{ branchName = 'release/3.14/task7'; expectedBranchLabel = 'rc'; expectedBuildNumer = "44391" }
+        @{ branchName = 'master'; expectedBranchLabel = ''; expectedBuildNumer = "64871" }
     ) {
         param
         (
-            [string]$branchType,
+            [string]$branchName,
             [string]$expectedBranchLabel,
             [string]$expectedBuildNumer
         )
@@ -36,7 +40,7 @@ Describe -Tags "Unit" -Name "Get-NextEraVersion" {
             CommitDate = "2019-08-16T10:15:00"
         }
 
-        $version = Get-NextEraVersion -EraBeginningDate ([DateTime]"2018-10-01") -CurrentCommit $currentCommit -BranchType $branchType
+        $version = Get-NextEraVersion -EraBeginningDate ([DateTime]"2018-10-01") -CurrentCommit $currentCommit -branchName $branchName
 
         $version.AssemblyVersion | Should -Be "319.1015.$expectedBuildNumer.1120"
         $version.FileVersion | Should -Be "319.1015.$expectedBuildNumer.1120"
@@ -48,7 +52,7 @@ Describe -Tags "Unit" -Name "Get-NextEraVersion" {
             CommitHash = "d670460b4b4aece5915caf5c68d12f560a9fe3e4"
             CommitDate = "2149-01-01T00:00:00"
         }
-        Get-NextEraVersion -EraBeginningDate ([DateTime]"1970-01-01") -CurrentCommit $currentCommit -BranchType "canary" -WarningVariable warningMessage
+        Get-NextEraVersion -EraBeginningDate ([DateTime]"1970-01-01") -CurrentCommit $currentCommit -branchName "canary" -WarningVariable warningMessage
         $warningMessage | Should -Be "The Major value has almost reached its maximum. A value greater than 65535 can cause problems on Win32 systems! Major value is '65379'."
     }
 
@@ -57,7 +61,7 @@ Describe -Tags "Unit" -Name "Get-NextEraVersion" {
             CommitHash = "d670460b4b4aece5915caf5c68d12f560a9fe3e4"
             CommitDate = "2149-07-01T00:00:00"
         }
-        Get-NextEraVersion -EraBeginningDate ([DateTime]"1970-01-01") -CurrentCommit $currentCommit -BranchType "canary" -ErrorVariable errorMessage -ErrorAction SilentlyContinue
+        Get-NextEraVersion -EraBeginningDate ([DateTime]"1970-01-01") -CurrentCommit $currentCommit -branchName "canary" -ErrorVariable errorMessage -ErrorAction SilentlyContinue
         $errorMessage | Should -Be "The Major value has almost reached its maximum. A value greater than 65535 can cause problems on Win32 systems! Major value is '65560'."
     }
 }
