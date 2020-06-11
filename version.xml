@@ -1,0 +1,22 @@
+<Project>
+    <!--
+        USAGE:
+        Simply import this file in your *.csproj file.
+
+        Example:
+        <Import Project="version.xml" />
+    -->
+
+    <PropertyGroup>
+        <XTargetSemVer>0.1.0</XTargetSemVer>
+    </PropertyGroup>
+
+    <!-- This property group may be overwritten by automation. -->
+    <PropertyGroup>
+        <AssemblyVersion>$(XTargetSemVer.Substring(0, $(XTargetSemVer.LastIndexOf('.')))).0.0</AssemblyVersion>
+        <FileVersion>$(XTargetSemVer).0</FileVersion>
+        <InformationalVersion>$(XTargetSemVer)-developerBuild.$([System.DateTime]::UtcNow.ToString(yyMMdd-HHmm))</InformationalVersion>
+        <PackageVersion>$(InformationalVersion)</PackageVersion>
+        <Version>$(InformationalVersion)</Version>
+    </PropertyGroup>
+</Project>

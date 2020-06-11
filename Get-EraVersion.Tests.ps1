@@ -62,3 +62,11 @@ Describe -Tags "Unit" -Name "Get-NextEraVersion" {
     }
 }
 
+# Describe "test" {
+
+#     new-item (Join-Path $TestDrive 'File.txt') 
+
+#     It "Test if File.txt exist" {
+#        (test-path -path (Join-Path $TestDrive 'File.txt')  ) | Should -Be $true
+#     }
+# }
