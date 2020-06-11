@@ -1,9 +1,12 @@
-
 # Pester is a Behavior-Driven Development (BDD) based test runner and mocking framework for PowerShell.
+#
+# Read https://pester.dev/docs/introduction/installation for instructions. Note special procedure in Windows 10 v1809 and higher!
 #
 # Install-Module -Name Pester -Force -SkipPublisherCheck # to get version '5.0.2'
 # Import-Module Pester
 # Invoke-Pester -Script $(System.DefaultWorkingDirectory)\MyFirstModule.test.ps1 -OutputFile $(System.DefaultWorkingDirectory)\Test-Pester.XML -OutputFormat NUnitXML
+#
+# !!! Use Pester 4.7.3, since $TestDrive does not work in Pester 5.0.2 !!!
 
 # Load SUT file
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -66,11 +69,30 @@ Describe -Tags "Unit" -Name "Get-NextEraVersion" {
     }
 }
 
-# Describe "test" {
+Describe -Tag "Unit" -Name "Set-VersionXmlFile" {
+    $content = '<Project><PropertyGroup><AssemblyVersion>$(DUMMY)</AssemblyVersion><FileVersion>$(DUMMY).0</FileVersion><InformationalVersion>$(DUMMY)-dummy.42</InformationalVersion><PackageVersion>$(InformationalVersion)</PackageVersion><Version>$(InformationalVersion)</Version></PropertyGroup></Project>'
+    $mockPath = "$TestDrive\version.xml"
+    Set-Content $mockPath -Value $content
 
-#     new-item (Join-Path $TestDrive 'File.txt') 
+    It "Ensures mocked version.xml is existing" {
+       (Test-Path -Path $mockPath) | Should -Be $true
+       (Get-Content -Path $mockPath) | Should -Be $content
+    }
 
-#     It "Test if File.txt exist" {
-#        (test-path -path (Join-Path $TestDrive 'File.txt')  ) | Should -Be $true
-#     }
-# }
+    It "Writes the correct values for AssemblyVersion, FileVersion and InformationalVersion to the version.xml file" {
+        $version = [Version]@{
+            AssemblyVersion = "3.14.15.92"
+            FileVersion = "2.71.82.81"
+            SemanticVersion = "1.618.0339-label.GoldenRatio"
+        }
+
+        Set-VersionXmlFile -AbsoluteFilePath $mockPath -Version $version
+
+        [xml]$xml = Get-Content -Path $mockPath
+        (Select-Xml -Xml $xml -XPath "//PropertyGroup/AssemblyVersion").Node.InnerText | Should -Be "3.14.15.92"
+        (Select-Xml -Xml $xml -XPath "//PropertyGroup/FileVersion").Node.InnerText | Should -Be "2.71.82.81"
+        (Select-Xml -Xml $xml -XPath "//PropertyGroup/InformationalVersion").Node.InnerText | Should -Be "1.618.0339-label.GoldenRatio"
+        (Select-Xml -Xml $xml -XPath "//PropertyGroup/PackageVersion").Node.InnerText | Should -Be '$(InformationalVersion)'
+        (Select-Xml -Xml $xml -XPath "//PropertyGroup/Version").Node.InnerText | Should -Be '$(InformationalVersion)'
+    }
+}
