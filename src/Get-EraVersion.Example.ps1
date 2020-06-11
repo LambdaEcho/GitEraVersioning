@@ -14,3 +14,5 @@ $version = Get-NextEraVersion -EraBeginningDate $initialCommit.CommitDate -Curre
 Write-Output "AssemblyVersion: $($version.AssemblyVersion)"
 Write-Output "FileVersion: $($version.FileVersion)"
 Write-Output "SemanticVersion (SemVer): $($version.SemanticVersion)"
+
+Set-VersionXmlFile -AbsoluteFilePath "$here\version.xml" -Version $version

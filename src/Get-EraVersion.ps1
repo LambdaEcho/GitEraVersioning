@@ -73,7 +73,6 @@ function Get-CurrentCommit() {
     return $commit
 }
 
-#function Get-NextEraVersion ([DateTime]$EraBeginningDate, [Commit]$CurrentCommit, [string]$BranchType)
 function Get-NextEraVersion
 {
     [CmdletBinding()]
@@ -121,4 +120,23 @@ function Get-NextEraVersion
     return $version
 }
 
-# FIXME: Add function to write version.xml
+function Set-VersionXmlFile
+{
+    [CmdletBinding()]
+    Param(
+        [string]$AbsoluteFilePath,
+        [Version]$Version
+    )
+
+    [xml]$xml = Get-Content -Path $AbsoluteFilePath
+    (Select-Xml -Xml $xml -XPath "//PropertyGroup/AssemblyVersion").Node.InnerText = $Version.AssemblyVersion
+    (Select-Xml -Xml $xml -XPath "//PropertyGroup/FileVersion").Node.InnerText = $Version.FileVersion
+    (Select-Xml -Xml $xml -XPath "//PropertyGroup/InformationalVersion").Node.InnerText = $Version.SemanticVersion
+    $xml.Save($AbsoluteFilePath)
+
+    # Sanity check
+    # After file processing, we expect a remaining variable for PackageVersion and Version only!
+    if (((Select-String -Path $AbsoluteFilePath -Pattern "\$\(InformationalVersion\)") | Measure-Object).Count -ne 2) {
+        throw [System.InvalidOperationException] "Error while processing $($AbsoluteFilePath)!"
+    }
+}
