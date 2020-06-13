@@ -23,6 +23,6 @@ This format complies with [SemVer 2.0](https://semver.org/).
 ```
 
 ## Usage
-1. Add `version.xml` and `Set-EraVersion.ps1` to your repository.
+1. Add `src\version.xml` and `src\Set-EraVersion.ps1` to your repository.
 2. Import `version.xml` in every `*.csproj` file, like `<Import Project="version.xml" />`.
-2. On every build, run the code inside of `Set-EraVersion.Example.ps1` right before your repository will be compiled.
+2. On every build, run the code inside of `src\Set-EraVersion.Example.ps1` right before your repository will be compiled.
