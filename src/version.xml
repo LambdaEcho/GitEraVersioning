@@ -7,6 +7,7 @@
         <Import Project="version.xml" />
     -->
 
+    <!-- This property group is only used in builds that do not run the script, like debugging builds in your IDE. -->
     <PropertyGroup>
         <XTargetSemVer>0.1.0</XTargetSemVer>
     </PropertyGroup>

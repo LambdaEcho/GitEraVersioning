@@ -6,10 +6,11 @@
 # using an incremental rollout strategy (CI/CD) without upstream dependencies.
 #
 #
-# Fomat:
-# <DaysElapsed>.<HoursElapsed><MinutesElapsed>.0[-<pre-release>[+<build>]],
+# Format:
+# <DaysElapsed>.<HoursElapsed><MinutesElapsed>.0[-<pre-release>[+<buildMetadata>]],
 #   where <pre-release> ::= canary | ci | rc
-#   and <build> ::= <commitsSinceVersionSource>.<currentCommitHashShort>
+#   and <build> ::= <currentCommitHashShort>
+# This format complies with SemVer 2.0 (cf. https://semver.org/).
 #
 
 
@@ -21,7 +22,7 @@ $cfgBranchNameProperties = @{}
 $cfgBranchNameProperties["topic"] = @{ Label = "canary"; Nibble = "0" } # Used for active topic branches (aka. feature branches), i.e. for canary builds.
 $cfgBranchNameProperties["develop"] = @{ Label = "ci"; Nibble = "4" } # Used for main develop branch, i.e. for CI builds.
 $cfgBranchNameProperties["release"] = @{ Label = "rc"; Nibble = "A" } # Used for active release branches, i.e. for RC builds.
-$cfgBranchNameProperties["master"] = @{ Label = ""; Nibble = "F" } # Used for master branch, i.e. RTM builds.
+$cfgBranchNameProperties["master"] = @{ Label = ""; Nibble = "F" } # Used for master branch, i.e. RTM or stable builds.
 
 
 
