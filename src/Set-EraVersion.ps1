@@ -29,14 +29,14 @@ $cfgBranchNameProperties["master"] = @{ Label = ""; Nibble = "F" } # Used for ma
 #
 # TYPES
 #
-class Commit
+class EraCommit
 {
     # Optionally, add attributes to prevent invalid values
     [ValidateNotNullOrEmpty()][string]$CommitHash
     [ValidateNotNullOrEmpty()][DateTime]$CommitDate
 }
 
-class Version
+class EraVersion
 {
     [ValidateNotNullOrEmpty()][string]$AssemblyVersion
     [ValidateNotNullOrEmpty()][string]$FileVersion
@@ -53,7 +53,7 @@ function Get-InitialCommit() {
     $shortHash = $hash.Substring(0,7)
     $date = (git show -s --format=%cI $shortHash) | Get-Date
     
-    $commit = [Commit]@{
+    $commit = [EraCommit]@{
         CommitHash = $hash
         CommitDate = $date
     }
@@ -66,7 +66,7 @@ function Get-CurrentCommit() {
     $shortHash = $hash.Substring(0,7)
     $date = (git show -s --format=%cI $shortHash) | Get-Date
 
-    $commit = [Commit]@{
+    $commit = [EraCommit]@{
         CommitHash = $hash
         CommitDate = $date
     }
@@ -79,7 +79,7 @@ function Get-NextEraVersion
     [CmdletBinding()]
     Param(
         [DateTime]$EraBeginningDate,
-        [Commit]$CurrentCommit,
+        [EraCommit]$CurrentCommit,
         [string]$BranchName
     )
 
@@ -114,7 +114,7 @@ function Get-NextEraVersion
     if ($elapsedDays -gt 65500) { Write-Error $elapsedDaysMessage } #-ErrorAction Inquire }
     elseif ($elapsedDays -gt 65170) { Write-Warning $elapsedDaysMessage }
 
-    $version = [Version]@{
+    $version = [EraVersion]@{
         AssemblyVersion = $assemblyVersion
         FileVersion = $fileVersion
         SemanticVersion = $semVer
@@ -128,7 +128,7 @@ function Set-VersionXmlFile
     [CmdletBinding()]
     Param(
         [string]$AbsoluteFilePath,
-        [Version]$Version
+        [EraVersion]$Version
     )
 
     [xml]$xml = Get-Content -Path $AbsoluteFilePath

@@ -38,7 +38,7 @@ Describe -Tags "Unit" -Name "Get-NextEraVersion" {
             [string]$expectedBuildNumer
         )
 
-        $currentCommit = [Commit]@{
+        $currentCommit = [EraCommit]@{
             CommitHash = "d670460b4b4aece5915caf5c68d12f560a9fe3e4"
             CommitDate = "2019-08-16T10:15:00"
         }
@@ -51,7 +51,7 @@ Describe -Tags "Unit" -Name "Get-NextEraVersion" {
     }
 
     It "Writes warning message about one year before FileVersion exceeds 16bit boundary" {
-        $currentCommit = [Commit]@{
+        $currentCommit = [EraCommit]@{
             CommitHash = "d670460b4b4aece5915caf5c68d12f560a9fe3e4"
             CommitDate = "2149-01-01T00:00:00"
         }
@@ -60,7 +60,7 @@ Describe -Tags "Unit" -Name "Get-NextEraVersion" {
     }
 
     It "Writes error message about 30 days before FileVersion exceeds 16bit boundary" {
-        $currentCommit = [Commit]@{
+        $currentCommit = [EraCommit]@{
             CommitHash = "d670460b4b4aece5915caf5c68d12f560a9fe3e4"
             CommitDate = "2149-07-01T00:00:00"
         }
@@ -80,7 +80,7 @@ Describe -Tag "Unit" -Name "Set-VersionXmlFile" {
     }
 
     It "Writes the correct values for AssemblyVersion, FileVersion and InformationalVersion to the version.xml file" {
-        $version = [Version]@{
+        $version = [EraVersion]@{
             AssemblyVersion = "3.14.15.92"
             FileVersion = "2.71.82.81"
             SemanticVersion = "1.618.0339-label.GoldenRatio"
