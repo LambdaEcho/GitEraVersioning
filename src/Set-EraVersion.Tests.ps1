@@ -5,19 +5,18 @@
 # Install-Module -Name Pester -Force -SkipPublisherCheck # to get version '5.0.2'
 # Import-Module Pester
 # Invoke-Pester -Script $(System.DefaultWorkingDirectory)\MyFirstModule.test.ps1 -OutputFile $(System.DefaultWorkingDirectory)\Test-Pester.XML -OutputFormat NUnitXML
-#
-# !!! Use Pester 4.7.3, since $TestDrive does not work in Pester 5.0.2 !!!
-
-# Load SUT file
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
-. "$here\$sut"
 
 # Configure Pester
-#$PesterPreference = [PesterConfiguration]::Default
-#$PesterPreference.Debug.WriteDebugMessages = $true
-#$PesterPreference.Debug.WriteDebugMessagesFrom = "Mock"
-#$PesterPreference.Should.ErrorAction = "Continue"
+$PesterPreference = [PesterConfiguration]::Default
+$PesterPreference.Debug.WriteDebugMessages = $true
+$PesterPreference.Debug.WriteDebugMessagesFrom = "Mock"
+$PesterPreference.Should.ErrorAction = 'Continue'
+$PesterPreference.Output.Verbosity = 'Detailed' # Diagnostic, Detailed, Normal
+
+BeforeAll {
+    # DON'T use $MyInvocation.MyCommand.Path
+    . $PSCommandPath.Replace('.Tests.ps1','.ps1')
+}
 
 # Tests
 Describe -Tags "Unit" -Name "Get-NextEraVersion" {
@@ -70,9 +69,11 @@ Describe -Tags "Unit" -Name "Get-NextEraVersion" {
 }
 
 Describe -Tag "Unit" -Name "Set-VersionXmlFile" {
-    $content = '<Project><PropertyGroup><AssemblyVersion>$(DUMMY)</AssemblyVersion><FileVersion>$(DUMMY).0</FileVersion><InformationalVersion>$(DUMMY)-dummy.42</InformationalVersion><PackageVersion>$(InformationalVersion)</PackageVersion><Version>$(InformationalVersion)</Version></PropertyGroup></Project>'
-    $mockPath = "$TestDrive\version.xml"
-    Set-Content $mockPath -Value $content
+    BeforeEach {
+        $content = '<Project><PropertyGroup><AssemblyVersion>$(DUMMY)</AssemblyVersion><FileVersion>$(DUMMY).0</FileVersion><InformationalVersion>$(DUMMY)-dummy.42</InformationalVersion><PackageVersion>$(InformationalVersion)</PackageVersion><Version>$(InformationalVersion)</Version></PropertyGroup></Project>'
+        $mockPath = "$TestDrive\version.xml"
+        Set-Content $mockPath -Value $content 
+    }
 
     It "Ensures mocked version.xml is existing" {
        (Test-Path -Path $mockPath) | Should -Be $true
